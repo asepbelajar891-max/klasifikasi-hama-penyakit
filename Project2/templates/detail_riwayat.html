@@ -1,0 +1,150 @@
+{% extends "layout.html" %}
+{% block title %}Detail Riwayat - {{ history.prediction }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-4 text-center">Detail Hasil Analisis</h3>
+    <div class="row d-flex justify-content-center">
+        <div class="col-lg-10">
+            <div class="card bg-dark-subtle border-secondary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 col-md-3  text-center">
+                            <img src="{{ url_for('static', filename=history.image_path.replace('static/', '')) }}" alt="Gambar {{ history.filename }}" class="img-fluid rounded shadow-sm mb-3">
+                            <p class="fst-italic">File: {{ history.filename }}</p>
+                            <p class="fst-italic"><small>Dianalisis pada: {{ history.formatted_date }}</small></p>
+                        </div>
+                        <div class="col-12 col-md-9">
+                            {% if history.feedback and history.analysis %}
+                            
+                            <div id="main-prediction-display" class="mb-3">
+                                <h3 class="mb-0">Prediksi Utama: <strong>{{ history.analysis.top_prediction.name }} - <em>{{ penanganan_info.indonesian_name }}</em></strong></h3>
+                            </div>
+
+                            <div id="feedback-alert" class="alert {{ history.feedback.alert_class }}" role="alert">
+                                <span class="fw-bold">SKOR: {{ history.analysis.top_prediction.score }}%</span> - {{ history.feedback.message | safe }}
+                            </div>
+                            
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between align-items-center list-group-item-primary">
+                                    <span>{{ history.analysis.top_prediction.name }}</span>
+                                    <span class="badge bg-primary rounded-pill">{{ history.analysis.top_prediction.score }}%</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>{{ history.analysis.secondary_prediction.name }}</span>
+                                    <span class="badge bg-secondary rounded-pill">{{ history.analysis.secondary_prediction.score }}%</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>{{ history.analysis.tertiary_prediction.name }}</span>
+                                    <span class="badge bg-secondary rounded-pill">{{ history.analysis.tertiary_prediction.score }}%</span>
+                                </li>
+                            </ul>
+                            
+                            {% else %}
+                            <div class="alert alert-warning" role="alert">
+                                Data analisis tidak tersedia untuk riwayat ini.
+                            </div>
+                            {% endif %}
+                            
+                            <div class="alert alert-warning mt-4" role="alert">
+                                <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Perhatian!</h4>
+                                <p>Aplikasi ini adalah alat bantu diagnosis awal dan <strong>TIDAK</strong> menggantikan saran dari ahli pertanian (PPL) atau pakar. Gunakan informasi ini dengan bijak.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if penanganan_info %}
+    <div class="card mt-4 bg-dark-subtle border-secondary">
+        <div class="card-header">
+            <h5>Informasi Detail Mengenai: {{ history.prediction }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="accordion" id="penangananAccordion">
+                <div class="accordion-item bg-dark">
+                    <h2 class="accordion-header" id="headingDeskripsi">
+                        <button class="accordion-button collapsed bg-secondary text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDeskripsi" aria-expanded="false" aria-controls="collapseDeskripsi">
+                            <strong>Deskripsi Penyakit</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseDeskripsi" class="accordion-collapse collapse" aria-labelledby="headingDeskripsi" data-bs-parent="#penangananAccordion">
+                        <div class="accordion-body text-white">
+                            <p>{{ penanganan_info.deskripsi }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item bg-dark">
+                    <h2 class="accordion-header" id="headingPenanganan">
+                        <button class="accordion-button collapsed bg-secondary text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePenanganan" aria-expanded="false" aria-controls="collapsePenanganan">
+                            <strong>Saran Penanganan</strong>
+                        </button>
+                    </h2>
+                    <div id="collapsePenanganan" class="accordion-collapse collapse" aria-labelledby="headingPenanganan" data-bs-parent="#penangananAccordion">
+                        <div class="accordion-body text-white">
+                            <p>{{ penanganan_info.penanganan }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item bg-dark">
+                    <h2 class="accordion-header" id="headingSumber">
+                        <button class="accordion-button collapsed bg-secondary text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSumber" aria-expanded="false" aria-controls="collapseSumber">
+                            <strong>Sumber Informasi</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseSumber" class="accordion-collapse collapse" aria-labelledby="headingSumber" data-bs-parent="#penangananAccordion">
+                        <div class="accordion-body text-white">
+                            <p>Informasi lebih lanjut dapat ditemukan di: <a href="{{ penanganan_info.external_link }}" target="_blank" class="text-info">{{ penanganan_info.external_link }}</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card mt-4 bg-dark-subtle border-secondary">
+        <div class="card-header">
+            <h5>Probabilitas Rinci dari Setiap Model</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Penyakit</th>
+                            {% if history.detailed_results %}
+                                {% for model_name in history.detailed_results.keys() %}
+                                    <th scope="col" class="text-center">{{ model_name }}</th>
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if history.detailed_results %}
+                            {% for i in range(CLEAN_CLASS_NAMES|length) %}
+                                {% set class_name = CLEAN_CLASS_NAMES[i] %}
+                                <tr class="{% if class_name == history.prediction %}table-info{% endif %}">
+                                    <th scope="row">{{ class_name }}</th>
+                                    {% for model_name in history.detailed_results.keys() %}
+                                        <td class="text-center">{{ history.detailed_results[model_name][i] }}%</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">Data probabilitas rinci tidak tersedia.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('main.riwayat') }}" class="btn btn-secondary">Kembali ke Daftar Riwayat</a>
+    </div>
+</div>
+{% endblock %}

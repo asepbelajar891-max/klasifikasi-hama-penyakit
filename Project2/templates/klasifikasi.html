@@ -1,0 +1,426 @@
+{% extends "layout.html" %}
+
+{% block head_extra %}
+    <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <style>
+        .crop-modal-img {
+            display: block;
+            max-width: 100%;
+            max-height: 70vh;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Klasifikasi Penyakit Daun Tomat</h2>
+<p>Seret dan lepas gambar daun tomat ke dalam kotak di bawah, atau klik untuk memilih file dari komputer Anda.</p>
+
+<div id="upload-and-tips-section">
+    <div class="row mb-3">
+        <div class="col-12">
+            <form action="{{ url_for('main.predict') }}" class="dropzone" id="upload-form">
+                <div class="dz-message" data-dz-message>
+                    <span><i class="bi bi-cloud-arrow-up-fill fs-1"></i><br>Seret & Lepas file di sini atau klik untuk memilih</span>
+                    <hr class="w-50 mx-auto">
+                    <div id="start-camera-wrapper">
+                        <button id="start-camera-btn" type="button" class="btn btn-secondary"><i class="bi bi-camera-fill"></i> Buka Kamera</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Area Pratinjau Gambar dengan Tombol Lanjutan -->
+    <div id="image-preview-area" class="mt-4 text-center" style="display: none;">
+        <h4>Pratinjau Gambar:</h4>
+        <img id="selected-image-preview" src="#" alt="Pratinjau Gambar yang Dipilih" class="img-fluid rounded shadow-sm" style="max-height: 300px;">
+        <div class="mt-3">
+            <button id="cancel-preview-btn" class="btn btn-danger">Batal</button>
+            <button id="open-cropper-btn" class="btn btn-primary">Lanjutkan untuk Memotong</button>
+        </div>
+    </div>
+
+    <div class="row my-4" id="tips-row">
+        <div class="col-12">
+            <div class="card bg-dark-subtle border-secondary">
+                    <div class="card-body py-3">
+                        <h6 class="card-title mb-2"><i class="bi bi-lightbulb-fill"></i> Tips Pengambilan Gambar</h6>
+                        <hr class="mt-2 mb-3">
+                        <ul class="list-unstyled small mb-0">
+                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Gunakan pencahayaan yang cukup dan merata.</li>
+                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Pastikan fokus tajam pada gejala di daun.</li>
+                            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Hindari bayangan yang menutupi area penting.</li>
+                            <li class="mb-0"><i class="bi bi-x-circle-fill text-danger me-2"></i>Jangan mengambil gambar dari jarak terlalu jauh.</li>
+                        </ul>
+                    </div>
+                </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="camera-container" class="mt-4 text-center" style="display: none;">
+    <h4>Tampilan Kamera</h4>
+    <video id="video-feed" playsinline autoplay class="img-fluid rounded shadow-sm" style="max-height: 400px;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div class="mt-3">
+        <button id="capture-btn" class="btn btn-primary"><i class="bi bi-camera-reels-fill"></i> Ambil Gambar</button>
+        <button id="torch-btn" class="btn btn-warning" style="display: none;"><i class="bi bi-flashlight-fill"></i> Senter</button>
+        <button id="stop-camera-btn" class="btn btn-danger"><i class="bi bi-x-circle-fill"></i> Tutup Kamera</button>
+    </div>
+</div>
+
+<div id="result-area" class="mt-5" style="display: none;">
+    <h3 class="mb-4 text-center">Hasil Analisis</h3>
+    <div class="row d-flex justify-content-center">
+        <div class="col-lg-10">
+            <div class="card bg-dark-subtle border-secondary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 col-md-3 text-center">
+                            <img id="image-preview-result" src="#" alt="Pratinjau Gambar" class="img-fluid rounded shadow-sm mb-3">
+                            <p class="fst-italic" id="filename-display"></p>
+                        </div>
+                        <div class="col-12 col-md-9">
+                            <div id="main-prediction-display" class="mb-3"></div>
+                            <div id="feedback-alert" class="alert" role="alert"></div>
+                            <ul class="list-group">
+                                <li id="prediction-1" class="list-group-item d-flex justify-content-between align-items-center list-group-item-primary"></li>
+                                <li id="prediction-2" class="list-group-item d-flex justify-content-between align-items-center"></li>
+                                <li id="prediction-3" class="list-group-item d-flex justify-content-between align-items-center"></li>
+                            </ul>
+                            <div class="mt-3">
+                                <a id="detail-link" href="#" class="btn btn-info" target="_blank" style="display: none;"><i class="bi bi-box-arrow-up-right"></i> Lihat Detail Analisis</a>
+                            </div>
+                            <div class="alert alert-warning mt-4" role="alert">
+                                <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Perhatian!</h4>
+                                <p>Aplikasi ini adalah alat bantu diagnosis awal dan <strong>TIDAK</strong> menggantikan saran dari ahli pertanian (PPL) atau pakar. Gunakan informasi ini dengan bijak.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal untuk Crop Gambar -->
+<div class="modal fade" id="cropModal" tabindex="-1" role="dialog" aria-labelledby="cropModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cropModalLabel">Potong & Fokuskan Gambar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div>
+                    <img id="image-to-crop" src="" alt="Pratinjau untuk dipotong" class="crop-modal-img">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="crop-and-predict-btn" class="btn btn-primary">Potong & Prediksi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="spinner-overlay" id="spinner-overlay"></div>
+<div id="loading-spinner" class="text-center">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="text-white mt-2">Menganalisis gambar...</p>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Notifikasi</strong>
+            <small>Baru saja</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toast-body"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+    // --- Global Variables ---
+    let cropper;
+    let originalFile;
+    let originalImageDataUrl;
+    const cropModalEl = document.getElementById('cropModal');
+    const cropModal = new bootstrap.Modal(cropModalEl);
+    const imageToCrop = document.getElementById('image-to-crop');
+    const imagePreviewArea = document.getElementById('image-preview-area');
+    const selectedImagePreview = document.getElementById('selected-image-preview');
+    const dropzoneElement = document.getElementById('upload-form');
+    const tipsRow = document.getElementById('tips-row');
+
+    // --- Helper Functions ---
+    function showSpinner() { document.getElementById('spinner-overlay').style.display = 'block'; document.getElementById('loading-spinner').style.display = 'block'; }
+    function hideSpinner() { document.getElementById('spinner-overlay').style.display = 'none'; document.getElementById('loading-spinner').style.display = 'none'; }
+
+    function showToast(message, isError = false) {
+        const toastEl = document.getElementById('liveToast');
+        const toastBody = document.getElementById('toast-body');
+        toastEl.className = 'toast ' + (isError ? 'text-bg-danger' : 'text-bg-success');
+        toastBody.innerHTML = message;
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+    }
+
+    function displayResults(response) {
+        const resultArea = document.getElementById('result-area');
+        resultArea.style.display = 'block';
+        document.getElementById('image-preview-result').src = response.image_path;
+        document.getElementById('filename-display').innerText = `File: ${response.original_filename || 'capture.jpg'}`;
+
+        if (response.status === 'uncertain') {
+            const feedbackAlert = document.getElementById('feedback-alert');
+            feedbackAlert.className = 'alert alert-danger';
+            feedbackAlert.innerHTML = `<strong>Tidak Dapat Diidentifikasi.</strong> ${response.message}`;
+            document.querySelector('.list-group').style.display = 'none';
+            document.getElementById('detail-link').style.display = 'none';
+            return;
+        }
+        
+        document.querySelector('.list-group').style.display = 'block';
+        const { top_prediction, secondary_prediction, tertiary_prediction } = response.analysis;
+        document.getElementById('main-prediction-display').innerHTML = `<h4 class="mb-0">Prediksi Utama: <strong>${top_prediction.name} - <em>${response.indonesian_name}</em></strong></h4>`;
+        const feedbackAlert = document.getElementById('feedback-alert');
+        feedbackAlert.className = `alert ${response.feedback.alert_class}`;
+        feedbackAlert.innerHTML = `<span class="fw-bold">SKOR: ${top_prediction.score}%</span> - ${response.feedback.message}`;
+
+        const predictions = [top_prediction, secondary_prediction, tertiary_prediction];
+        for (let i = 1; i <= 3; i++) {
+            const pred = predictions[i-1];
+            const li = document.getElementById(`prediction-${i}`);
+            if (pred && pred.name !== "N/A") {
+                li.innerHTML = `<span>${pred.name}</span> <span class="badge bg-primary rounded-pill">${pred.score}%</span>`;
+                li.style.display = 'flex';
+            } else {
+                li.style.display = 'none';
+            }
+        }
+
+        const detailLink = document.getElementById('detail-link');
+        if (response.riwayat_id) {
+            detailLink.href = `/riwayat/${response.riwayat_id}`;
+            detailLink.style.display = 'inline-block';
+        } else {
+            detailLink.style.display = 'none';
+        }
+    }
+
+    function sendCroppedImage(blob) {
+        const formData = new FormData();
+        const fileName = originalFile ? originalFile.name : 'capture.jpg';
+        formData.append('file', blob, fileName);
+
+        showSpinner();
+        fetch("{{ url_for('main.predict') }}", { method: 'POST', body: formData })
+            .then(response => response.ok ? response.json() : response.json().then(err => Promise.reject(err)))
+            .then(data => {
+                if (data.status === 'not_a_leaf') {
+                    showToast(data.message, true);
+                } else {
+                    displayResults(data);
+                    showToast('Klasifikasi berhasil!');
+                }
+            })
+            .catch(error => {
+                showToast(error.error || 'Gagal melakukan klasifikasi.', true);
+            })
+            .finally(() => {
+                hideSpinner();
+            });
+    }
+    
+    function resetUI() {
+        imagePreviewArea.style.display = 'none';
+        dropzoneElement.style.display = 'block';
+        tipsRow.style.display = 'flex';
+        let myDropzone = Dropzone.forElement("#upload-form");
+        if (myDropzone) {
+            myDropzone.removeAllFiles(true);
+        }
+    }
+
+    // --- Cropper Logic ---
+    cropModalEl.addEventListener('shown.bs.modal', () => {
+        imageToCrop.src = originalImageDataUrl;
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(imageToCrop, {
+            // aspectRatio: 1, // Dihapus untuk cropping bebas
+            viewMode: 1, responsive: true, background: false, autoCropArea: 0.8
+        });
+    });
+
+    cropModalEl.addEventListener('hidden.bs.modal', () => {
+        if (cropper) cropper.destroy();
+        cropper = null;
+    });
+
+    document.getElementById('crop-and-predict-btn').addEventListener('click', () => {
+        if (!cropper) return;
+        
+        const OUTPUT_SIZE = 512;
+        const croppedCanvas = cropper.getCroppedCanvas();
+
+        // Buat kanvas persegi dengan latar belakang hitam (padding)
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = OUTPUT_SIZE;
+        finalCanvas.height = OUTPUT_SIZE;
+        const ctx = finalCanvas.getContext('2d');
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+
+        // Hitung rasio untuk menempatkan gambar crop di tengah tanpa distorsi
+        const ratio = Math.min(OUTPUT_SIZE / croppedCanvas.width, OUTPUT_SIZE / croppedCanvas.height);
+        const newWidth = croppedCanvas.width * ratio;
+        const newHeight = croppedCanvas.height * ratio;
+        const x = (OUTPUT_SIZE - newWidth) / 2;
+        const y = (OUTPUT_SIZE - newHeight) / 2;
+
+        // Gambar hasil crop ke tengah kanvas persegi
+        ctx.drawImage(croppedCanvas, x, y, newWidth, newHeight);
+
+        finalCanvas.toBlob(blob => {
+            sendCroppedImage(blob);
+            cropModal.hide();
+            resetUI();
+        }, 'image/jpeg');
+    });
+
+    // --- Dropzone Initialization ---
+    Dropzone.options.uploadForm = {
+        paramName: "file", maxFilesize: 10, maxFiles: 1, acceptedFiles: "image/*", 
+        autoProcessQueue: false,
+        dictDefaultMessage: "Seret & Lepas file di sini atau klik untuk memilih",
+        addRemoveLinks: false, // We handle cancel manually
+        
+        init: function() {
+            var myDropzone = this;
+            myDropzone.on("addedfile", file => {
+                if (myDropzone.files.length > 1) {
+                    myDropzone.removeFile(myDropzone.files[0]);
+                }
+                originalFile = file;
+                document.getElementById('result-area').style.display = 'none';
+                const reader = new FileReader();
+                reader.onload = e => {
+                    originalImageDataUrl = e.target.result;
+                    selectedImagePreview.src = originalImageDataUrl;
+                    imagePreviewArea.style.display = 'block';
+                    dropzoneElement.style.display = 'none';
+                    tipsRow.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    };
+
+    // --- Camera Logic ---
+    const startCameraBtn = document.getElementById('start-camera-btn');
+    const stopCameraBtn = document.getElementById('stop-camera-btn');
+    const captureBtn = document.getElementById('capture-btn');
+    const torchBtn = document.getElementById('torch-btn');
+    const cameraContainer = document.getElementById('camera-container');
+    const video = document.getElementById('video-feed');
+    const canvas = document.getElementById('canvas');
+    const uploadAndTipsSection = document.getElementById('upload-and-tips-section');
+    let stream = null;
+    let videoTrack = null;
+    let torchOn = false;
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            video.srcObject = stream;
+            videoTrack = stream.getVideoTracks()[0];
+            
+            // Check for torch/flashlight support
+            const capabilities = videoTrack.getCapabilities();
+            if (capabilities.torch) {
+                torchBtn.style.display = 'inline-block';
+            }
+
+            cameraContainer.style.display = 'block';
+            uploadAndTipsSection.style.display = 'none';
+            document.getElementById('result-area').style.display = 'none';
+        } catch (err) {
+            console.error("Camera Error:", err);
+            showToast('Tidak dapat mengakses kamera. Pastikan Anda memberikan izin.', true);
+        }
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            videoTrack = null;
+        }
+        torchOn = false;
+        torchBtn.classList.remove('btn-success');
+        torchBtn.classList.add('btn-warning');
+        torchBtn.style.display = 'none';
+        cameraContainer.style.display = 'none';
+        uploadAndTipsSection.style.display = 'block';
+    }
+
+    function captureImage() {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        originalImageDataUrl = canvas.toDataURL('image/jpeg');
+        selectedImagePreview.src = originalImageDataUrl;
+        imagePreviewArea.style.display = 'block';
+        
+        originalFile = null;
+        stopCamera();
+        uploadAndTipsSection.style.display = 'block';
+        dropzoneElement.style.display = 'none';
+        tipsRow.style.display = 'none';
+    }
+
+    function toggleTorch() {
+        if (videoTrack && videoTrack.getCapabilities().torch) {
+            torchOn = !torchOn;
+            videoTrack.applyConstraints({
+                advanced: [{ torch: torchOn }]
+            }).then(() => {
+                if (torchOn) {
+                    torchBtn.classList.remove('btn-warning');
+                    torchBtn.classList.add('btn-success');
+                } else {
+                    torchBtn.classList.remove('btn-success');
+                    torchBtn.classList.add('btn-warning');
+                }
+            }).catch(e => {
+                console.error('Failed to toggle torch:', e);
+                showToast('Gagal mengontrol senter.', true);
+            });
+        }
+    }
+
+    // --- Button Event Listeners ---
+    document.getElementById('open-cropper-btn').addEventListener('click', () => {
+        cropModal.show();
+    });
+    
+    document.getElementById('cancel-preview-btn').addEventListener('click', resetUI);
+    startCameraBtn.addEventListener('click', e => { e.stopPropagation(); startCamera(); });
+    stopCameraBtn.addEventListener('click', stopCamera);
+    captureBtn.addEventListener('click', captureImage);
+    torchBtn.addEventListener('click', toggleTorch);
+</script>
+{% endblock %}
