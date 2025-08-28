@@ -1,0 +1,144 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h2 class="mb-4">Riwayat Klasifikasi</h2>
+
+<div class="mb-4 p-3 bg-dark rounded shadow-sm">
+    <form class="row g-3 align-items-center" method="GET" action="{{ url_for('main.riwayat') }}">
+        <div class="col-md-6">
+            <label for="searchInput" class="form-label visually-hidden">Cari Riwayat</label>
+            <div class="input-group">
+                <input type="text" class="form-control bg-secondary text-white border-secondary" id="searchInput" name="query" placeholder="Cari nama file atau prediksi..." value="{{ query if query else '' }}">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Cari</button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label for="sortBy" class="form-label visually-hidden">Urutkan Berdasarkan</label>
+            <select class="form-select bg-secondary text-white border-secondary" id="sortBy" name="sort_by" onchange="this.form.submit()">
+                <option value="timestamp" {% if sort_by == 'timestamp' %}selected{% endif %}>Waktu</option>
+                <option value="filename" {% if sort_by == 'filename' %}selected{% endif %}>Nama File</option>
+                <option value="prediction" {% if sort_by == 'prediction' %}selected{% endif %}>Prediksi</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="sortOrder" class="form-label visually-hidden">Urutan</label>
+            <select class="form-select bg-secondary text-white border-secondary" id="sortOrder" name="sort_order" onchange="this.form.submit()">
+                <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Terbaru/Z-A</option>
+                <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Terlama/A-Z</option>
+            </select>
+        </div>
+    </form>
+</div>
+
+{% if histories %}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4" id="riwayat-container">
+    {% for history in histories %}
+    <div class="col" id="riwayat-{{ history.id }}">
+         <div class="card h-100 text-bg-dark border-secondary shadow-sm">
+             <img src="{{ url_for('static', filename=history.image_path.split('static/')[1]) }}" class="card-img-top" alt="Gambar {{ history.filename }}" style="height: 200px; object-fit: cover;">
+             <div class="card-body">
+                 <h5 class="card-title">{{ history.prediction }} - <em>{{ history.indonesian_name }}</em></h5>
+                 <p class="card-text">
+                    <span class="badge {{ history.feedback.alert_class | replace('alert', 'bg') | default('bg-secondary', true) }}">{{ "%.2f"|format(history.confidence) }}% - {{ history.feedback.label }}</span>
+                 </p> 
+                 <p class="card-text"><small class="text">File: {{ history.filename }}</small></p> 
+             </div>      
+
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <small class="text">{{ history.formatted_date }}</small>
+                <div class="btn-group">
+                    <a href="{{ url_for('main.riwayat_detail', riwayat_id=history.id) }}" class="btn btn-info btn-sm" target="_blank" title="Buka di halaman baru">
+                        Detail
+                    </a>
+                    <button type="button" class="btn btn-danger btn-sm delete-btn" data-id="{{ history.id }}" title="Hapus riwayat">
+                        Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info text-center">
+    <p class="mb-0">Belum ada riwayat klasifikasi yang tersimpan.</p>
+</div>
+{% endif %}
+
+<!-- Toast Container untuk notifikasi -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+  <div id="deleteToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+      <strong class="me-auto">Notifikasi</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      <!-- Pesan akan dimasukkan di sini -->
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const riwayatContainer = document.getElementById('riwayat-container');
+    const deleteToastEl = document.getElementById('deleteToast');
+    const deleteToast = new bootstrap.Toast(deleteToastEl);
+
+    riwayatContainer.addEventListener('click', function (event) {
+        if (event.target.classList.contains('delete-btn')) {
+            const button = event.target;
+            const riwayatId = button.dataset.id;
+            
+            if (confirm('Anda yakin ingin menghapus riwayat ini? Tindakan ini tidak dapat dibatalkan.')) {
+                fetch(`/riwayat/delete/${riwayatId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Jika menggunakan CSRF protection, tambahkan header di sini
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const toastBody = deleteToastEl.querySelector('.toast-body');
+                    if (data.status === 'success') {
+                        // Hapus elemen dari DOM
+                        const riwayatCard = document.getElementById(`riwayat-${riwayatId}`);
+                        riwayatCard.style.transition = 'opacity 0.5s ease';
+                        riwayatCard.style.opacity = '0';
+                        setTimeout(() => {
+                            riwayatCard.remove();
+                            // Cek jika kontainer kosong
+                            if (!riwayatContainer.querySelector('.col')) {
+                                riwayatContainer.innerHTML = '<div class="col-12"><div class="alert alert-info text-center"><p class="mb-0">Semua riwayat telah dihapus.</p></div></div>';
+                            }
+                        }, 500);
+
+                        // Tampilkan notifikasi sukses
+                        toastBody.textContent = data.message;
+                        deleteToastEl.classList.remove('text-bg-danger');
+                        deleteToastEl.classList.add('text-bg-success');
+                        deleteToast.show();
+                    } else {
+                        // Tampilkan notifikasi error
+                        toastBody.textContent = data.message || 'Terjadi kesalahan.';
+                        deleteToastEl.classList.remove('text-bg-success');
+                        deleteToastEl.classList.add('text-bg-danger');
+                        deleteToast.show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const toastBody = deleteToastEl.querySelector('.toast-body');
+                    toastBody.textContent = 'Terjadi kesalahan jaringan.';
+                    deleteToastEl.classList.remove('text-bg-success');
+                    deleteToastEl.classList.add('text-bg-danger');
+                    deleteToast.show();
+                });
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

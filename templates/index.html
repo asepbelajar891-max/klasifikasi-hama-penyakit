@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="p-5 mb-4 bg-secondary rounded-3">
+    <div class="container-fluid py-5 text-center">
+        <h1 class="display-5 fw-bold">Selamat Datang!</h1>
+        <p class="fs-4">Aplikasi ini membantu Anda mengidentifikasi penyakit pada tanaman tomat secara cepat menggunakan teknologi Deep Learning. Unggah gambar daun tomat untuk memulai analisis.</p>
+        <a href="{{ url_for('main.login') }}" class="btn btn-primary btn-lg mt-3">
+            <i class="bi bi-camera"></i> Login
+        </a>
+    </div>
+</div>
+
+{% endblock %}

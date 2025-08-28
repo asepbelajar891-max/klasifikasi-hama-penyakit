@@ -1,0 +1,188 @@
+/* General Body Styles */
+body {
+    font-family: 'Roboto', 'Lato', sans-serif;
+    background-color: #F5F5DC; /* Krem muda / Off-white */
+    color: #333333; /* Abu-abu tua untuk teks */
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 15px;
+}
+
+/* Header and Navigation */
+.header {
+    background-color: #2E7D32; /* Hijau tua */
+    padding: 1rem 0;
+    color: white;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.nav {
+    display: flex;
+    justify-content: center;
+    background-color: #388E3C; /* Hijau sedikit lebih terang */
+    padding: 0.5rem 0;
+}
+
+.nav a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.nav a:hover {
+    background-color: #2E7D32; /* Hijau tua saat hover */
+}
+
+/* Main Content Area */
+.main-content {
+    background-color: #FFFFFF; /* Latar putih untuk konten utama */
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+/* Buttons - Overriding and extending Bootstrap */
+.btn-primary {
+    background-color: #2E7D32; /* Hijau tua */
+    border-color: #2E7D32;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #1B5E20; /* Hijau lebih gelap */
+    border-color: #1B5E20;
+}
+
+.btn-secondary {
+    background-color: #FFC107; /* Kuning tua */
+    border-color: #FFC107;
+    color: #333333;
+}
+
+.btn-secondary:hover {
+    background-color: #FFA000;
+    border-color: #FFA000;
+}
+
+/* Result Display */
+.result-card img, #selected-image-preview {
+    max-width: 100%;
+    height: auto;
+    max-height: 300px;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.result-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #D32F2F; /* Merah tua untuk nama penyakit */
+}
+
+.result-confidence {
+    font-size: 1.2rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+}
+
+/* History Table */
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.history-table th, .history-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+.history-table th {
+    background-color: #388E3C; /* Hijau */
+    color: white;
+}
+
+.history-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px 0;
+    color: #777;
+    font-size: 0.9rem;
+}
+
+/* Dropzone Upload Area */
+.dropzone {
+    border: 2px dashed #2E7D32 !important; /* Green dashed border */
+    border-radius: 8px !important;
+    background-color: #f9f9f9 !important; /* Light grey background */
+    color: #555 !important;
+    transition: background-color 0.3s;
+}
+
+.dropzone:hover {
+    background-color: #e9e9e9 !important;
+}
+
+.dz-message {
+    font-weight: bold;
+    color: #2E7D32; /* Green text */
+}
+
+/* Loading Spinner Overlay */
+.spinner-overlay {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1040; /* Below the spinner, above other content */
+}
+
+#loading-spinner {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050; /* Highest z-index */
+}
+
+/* Modal Styling for ALL modals */
+#detailModal .modal-content,
+#historyDetailModal .modal-content {
+    background-color: #343a40; /* Dark background for modal */
+    color: #f8f9fa; /* Light text color for modal content */
+}
+
+#detailModal .modal-header,
+#historyDetailModal .modal-header {
+    border-bottom: 1px solid #495057;
+}
+
+#detailModal .table,
+#historyDetailModal .table {
+    color: #f8f9fa; /* Light text for table inside modal */
+}

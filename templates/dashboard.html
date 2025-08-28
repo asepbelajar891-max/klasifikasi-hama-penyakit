@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Dashboard Pengguna: {{ current_user.username }}</h2>
+        <a href="{{ url_for('main.logout') }}" class="btn btn-danger">Logout</a>
+    </div>
+
+    <!-- Kartu Statistik Utama -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Total Unggahan</div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ total_uploads }}</h4>
+                    <p class="card-text">Gambar telah dianalisis.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Penyakit Terakhir Ditemukan</div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ last_disease if last_disease else 'N/A' }}</h4>
+                    <p class="card-text">Berdasarkan unggahan terakhir.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Penyakit Paling Umum</div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ most_common_disease if most_common_disease else 'N/A' }}</h4>
+                    <p class="card-text">Di semua unggahan Anda.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Riwayat Terbaru -->
+    <h3 class="mb-3">Riwayat Analisis Terbaru</h3>
+    <div class="list-group">
+        {% if riwayat_list %}
+            {% for riwayat in riwayat_list[:5] %} {# Tampilkan 5 terbaru #}
+            <a href="{{ url_for('main.riwayat_detail', riwayat_id=riwayat.id) }}" class="list-group-item list-group-item-action flex-column align-items-start">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">{{ riwayat.prediction }}</h5>
+                    <small>{{ riwayat.timestamp.strftime('%d %B %Y') }}</small>
+                </div>
+                <p class="mb-1">File: {{ riwayat.filename }}</p>
+                <small>Keyakinan: {{ "%.2f"|format(riwayat.confidence) }}%</small>
+            </a>
+            {% endfor %}
+        {% else %}
+            <p>Anda belum memiliki riwayat analisis. Mulai <a href="{{ url_for('main.klasifikasi') }}">klasifikasi sekarang</a>.</p>
+        {% endif %}
+    </div>
+    <div class="text-center mt-3">
+        <a href="{{ url_for('main.riwayat') }}" class="btn btn-secondary">Lihat Semua Riwayat</a>
+    </div>
+</div>
+{% endblock %}
